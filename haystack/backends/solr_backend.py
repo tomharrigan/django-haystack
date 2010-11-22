@@ -328,10 +328,14 @@ class SearchBackend(BaseSearchBackend):
             elif field_class.field_type == 'integer':
                 field_data['type'] = 'slong'
             elif field_class.field_type == 'float':
-                field_data['type'] = 'sfloat'
+                if field_name in ['lat', 'lng']:
+                    field_data['type'] = 'double'
+                else:
+                    field_data['type'] = 'sfloat'
             elif field_class.field_type == 'boolean':
                 field_data['type'] = 'boolean'
-            
+            elif field_class.field_type == 'boolean':
+                field_data['type'] = 'boolean'
             if field_class.is_multivalued:
                 field_data['multi_valued'] = 'true'
             
@@ -451,6 +455,10 @@ class SearchQuery(BaseSearchQuery):
         
         if spelling_query:
             kwargs['spelling_query'] = spelling_query
+            
+        if self.spatial_query:
+            spatial = ' '.join([ '%s=%s' % (k,v) for k,v in self.spatial_query.items()])
+            final_query = '{!spatial %s}%s' % (spatial, final_query)
         
         results = self.backend.search(final_query, **kwargs)
         self._results = results.get('results', [])
