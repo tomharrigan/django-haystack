@@ -1,3 +1,4 @@
+from decimal import Decimal
 import re
 from django.utils import datetime_safe
 from django.template import loader, Context
@@ -158,6 +159,20 @@ class CharField(SearchField):
         return unicode(value)
 
 
+class NgramField(CharField):
+    field_type = 'ngram'
+    
+    def __init__(self, **kwargs):
+        if kwargs.get('faceted') is True:
+            raise SearchFieldError("%s can not be faceted." % self.__class__.__name__)
+        
+        super(NgramField, self).__init__(**kwargs)
+
+
+class EdgeNgramField(NgramField):
+    field_type = 'edge_ngram'
+
+
 class IntegerField(SearchField):
     field_type = 'integer'
     
@@ -194,6 +209,25 @@ class FloatField(SearchField):
             return None
         
         return float(value)
+
+
+class DecimalField(SearchField):
+    field_type = 'string'
+    
+    def __init__(self, **kwargs):
+        if kwargs.get('facet_class') is None:
+            kwargs['facet_class'] = FacetDecimalField
+        
+        super(DecimalField, self).__init__(**kwargs)
+    
+    def prepare(self, obj):
+        return self.convert(super(DecimalField, self).prepare(obj))
+    
+    def convert(self, value):
+        if value is None:
+            return None
+        
+        return unicode(value)
 
 
 class BooleanField(SearchField):
@@ -272,6 +306,9 @@ class MultiValueField(SearchField):
         if kwargs.get('facet_class') is None:
             kwargs['facet_class'] = FacetMultiValueField
         
+        if kwargs.get('use_template') is True:
+            raise SearchFieldError("'%s' fields can not use templates to prepare their data." % self.__class__.__name__)
+        
         super(MultiValueField, self).__init__(**kwargs)
         self.is_multivalued = True
     
@@ -330,11 +367,17 @@ class FacetField(SearchField):
 
 class FacetCharField(FacetField, CharField):
     pass
-    
+
+
 class FacetIntegerField(FacetField, IntegerField):
     pass
-    
+
+
 class FacetFloatField(FacetField, FloatField):
+    pass
+
+
+class FacetDecimalField(FacetField, DecimalField):
     pass
 
 
