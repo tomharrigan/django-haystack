@@ -108,7 +108,7 @@ class SolrSearchBackend(BaseSearchBackend):
     def search(self, query_string, sort_by=None, start_offset=0, end_offset=None,
                fields='', highlight=False, facets=None, date_facets=None, query_facets=None,
                narrow_queries=None, spelling_query=None,
-               limit_to_registered_models=None, result_class=None, **kwargs):
+               limit_to_registered_models=None, result_class=None, d=None, sfield=None, pt=None, **kwargs):
         if len(query_string) == 0:
             return {
                 'results': [],
@@ -184,6 +184,15 @@ class SolrSearchBackend(BaseSearchBackend):
         if narrow_queries is not None:
             kwargs['fq'] = list(narrow_queries)
         
+        if d:
+            kwargs['d'] = d
+
+        if sfield:
+            kwargs['sfield'] = sfield
+            
+        if pt:
+            kwargs['pt'] = pt
+
         try:
             raw_results = self.conn.search(query_string, **kwargs)
         except (IOError, SolrError), e:
@@ -354,6 +363,8 @@ class SolrSearchBackend(BaseSearchBackend):
                 field_data['type'] = 'ngram'
             elif field_class.field_type == 'edge_ngram':
                 field_data['type'] = 'edge_ngram'
+            elif field_class.field_type == 'location':
+                field_data['type'] = 'location'
             
             if field_class.is_multivalued:
                 field_data['multi_valued'] = 'true'
@@ -474,8 +485,8 @@ class SolrSearchQuery(BaseSearchQuery):
             kwargs['spelling_query'] = spelling_query
             
         if self.spatial_query:
-            spatial = ' '.join([ '%s=%s' % (k,v) for k,v in self.spatial_query.items()])
-            final_query = '{!spatial %s}%s' % (spatial, final_query)
+            kwargs.update(self.spatial_query.items())
+            final_query = '{!geofilt}%s' % final_query
         
         results = self.backend.search(final_query, **kwargs)
         self._results = results.get('results', [])

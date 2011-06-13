@@ -639,8 +639,8 @@ class BaseSearchQuery(object):
         self.facets.add(connections[self._using].get_unified_index().get_facet_fieldname(field))
     
     def add_spatial(self, **kwargs):
-        if 'lat' not in kwargs or 'long' not in kwargs or 'radius' not in kwargs:
-            raise SpatialError("Spatial queries must be query with lat, long and radius at least")
+        if 'pt' not in kwargs or 'sfield' not in kwargs:
+            raise SpatialError("Spatial queries must be query with pt and sfield at least")
         self.spatial_query.update(kwargs)
 
     def add_date_facet(self, field, start_date, end_date, gap_by, gap_amount=1):
