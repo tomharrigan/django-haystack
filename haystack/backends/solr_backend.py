@@ -478,15 +478,18 @@ class SolrSearchQuery(BaseSearchQuery):
         if self.query_facets:
             kwargs['query_facets'] = self.query_facets
         
+        if self.spatial_query:
+            kwargs.update(self.spatial_query.items())
+            if not self.narrow_queries:
+                self.narrow_queries = set()
+            self.narrow_queries.add('{!geofilt}')
+            #final_query = '{!geofilt}%s' % final_query
+
         if self.narrow_queries:
             kwargs['narrow_queries'] = self.narrow_queries
         
         if spelling_query:
             kwargs['spelling_query'] = spelling_query
-            
-        if self.spatial_query:
-            kwargs.update(self.spatial_query.items())
-            final_query = '{!geofilt}%s' % final_query
         
         results = self.backend.search(final_query, **kwargs)
         self._results = results.get('results', [])
